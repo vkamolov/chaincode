@@ -285,7 +285,7 @@ func (t *SimpleChaincode) issueCommercialPaper(stub *shim.ChaincodeStub, args []
 	// Set the issuer to be the owner of all quantity
 	var owner Owner
 	owner.Company = cp.Issuer
-	owner.Quantity = cp.Qty
+	owner.Quantity = 100
 	
 	cp.Owners = append(cp.Owners, owner)
 
