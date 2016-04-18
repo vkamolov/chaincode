@@ -30,6 +30,7 @@ import (
 )
 
 var cpPrefix = "cp:"
+var ptPrefix = "pt:"
 var accountPrefix = "acct:"
 var accountsKey = "accounts"
 
@@ -88,6 +89,21 @@ type CP struct {
 	Issuer    string  `json:"issuer"`
 	IssueDate string  `json:"issueDate"`
 }
+
+
+//New Token created just for properties
+// type PT struct {
+// 	UUID 	  string  `json:"uuid"`
+// 	Name 	  string  `json:"name"`
+// 	BuyVal 	  float64 `json:"buyval"`
+// 	MktVal 	  float64 `json:"mktval"`
+// 	Addr 	  string  `json:"addr"`
+// 	Qty 	  string  `json:"qty"`
+// 	Owners 	  []Owner `json:"owner"`
+// 	Issuer 	  string  `json:"issuer"`
+// 	IssueDate string  `json:"issueDate"`
+// 	Maturity  int     `json:"maturity"`
+// }
 
 type Account struct {
 	ID          string  `json:"id"`
@@ -400,6 +416,186 @@ func (t *SimpleChaincode) issueCommercialPaper(stub *shim.ChaincodeStub, args []
 	}
 }
 
+// func (t *SimpleChaincode) createPropertyToken(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+
+// 	/*		0
+// 		json
+// 	  	{
+// 			"ticker":  "string",
+// 			"par": 0.00,
+// 			"qty": 10,
+// 			"discount": 7.5,
+// 			"maturity": 30,
+// 			"owners": [ // This one is not required
+// 				{
+// 					"company": "company1",
+// 					"quantity": 5
+// 				},
+// 				{
+// 					"company": "company3",
+// 					"quantity": 3
+// 				},
+// 				{
+// 					"company": "company4",
+// 					"quantity": 2
+// 				}
+// 			],				
+// 			"issuer":"company2",
+// 			"issueDate":"1456161763790"  (current time in milliseconds as a string)
+
+// 		}
+// 	*/
+// 	//need one arg
+// 	if len(args) != 1 {
+// 		fmt.Println("error invalid arguments")
+// 		return nil, errors.New("Incorrect number of arguments. Expecting commercial paper record")
+// 	}
+
+// 	var pt PT
+// 	var err error
+// 	var account Account
+
+// 	fmt.Println("Unmarshalling PT")
+// 	err = json.Unmarshal([]byte(args[0]), &pt)
+// 	if err != nil {
+// 		fmt.Println("error invalid property token issue")
+// 		return nil, errors.New("Invalid property token issue")
+// 	}
+
+// 	//generate the CUSIP
+// 	//get account prefix
+// 	fmt.Println("Getting state of - " + accountPrefix + pt.Issuer)
+// 	accountBytes, err := stub.GetState(accountPrefix + pt.Issuer)
+// 	if err != nil {
+// 		fmt.Println("Error Getting state of - " + accountPrefix + pt.Issuer)
+// 		return nil, errors.New("Error retrieving account " + pt.Issuer)
+// 	}
+// 	err = json.Unmarshal(accountBytes, &account)
+// 	if err != nil {
+// 		fmt.Println("Error Unmarshalling accountBytes")
+// 		return nil, errors.New("Error retrieving account " + pt.Issuer)
+// 	}
+	
+// 	account.AssetsIds = append(account.AssetsIds, pt.UUID)
+
+// 	// Set the issuer to be the owner of all quantity
+// 	var owner Owner
+// 	owner.Company = pt.Issuer
+// 	owner.Quantity = 100
+	
+// 	pt.Owners = append(pt.Owners, owner)
+
+// 	suffix, err := generateCUSIPSuffix(pt.IssueDate, pt.Maturity)
+// 	if err != nil {
+// 		fmt.Println("Error generating cusip")
+// 		return nil, errors.New("Error generating CUSIP")
+// 	}
+
+// 	fmt.Println("Marshalling CP bytes")
+// 	pt.CUSIP = account.Prefix + suffix
+	
+// 	fmt.Println("Getting State on PT " + pt.CUSIP)
+// 	ptRxBytes, err := stub.GetState(ptPrefix+pt.CUSIP)
+// 	if ptRxBytes == nil {
+// 		fmt.Println("CUSIP does not exist, creating it")
+// 		ptBytes, err := json.Marshal(&pt)
+// 		if err != nil {
+// 			fmt.Println("Error marshalling pt")
+// 			return nil, errors.New("Error issuing commercial paper")
+// 		}
+// 		err = stub.PutState(ptPrefix+pt.CUSIP, ptBytes)
+// 		if err != nil {
+// 			fmt.Println("Error issuing paper")
+// 			return nil, errors.New("Error issuing commercial paper")
+// 		}
+
+// 		fmt.Println("Marshalling account bytes to write")
+// 		accountBytesToWrite, err := json.Marshal(&account)
+// 		if err != nil {
+// 			fmt.Println("Error marshalling account")
+// 			return nil, errors.New("Error issuing commercial paper")
+// 		}
+// 		err = stub.PutState(accountPrefix + pt.Issuer, accountBytesToWrite)
+// 		if err != nil {
+// 			fmt.Println("Error putting state on accountBytesToWrite")
+// 			return nil, errors.New("Error issuing commercial paper")
+// 		}
+		
+		
+// 		// Update the paper keys by adding the new key
+// 		fmt.Println("Getting Paper Keys")
+// 		keysBytes, err := stub.GetState("PaperKeys")
+// 		if err != nil {
+// 			fmt.Println("Error retrieving paper keys")
+// 			return nil, errors.New("Error retrieving paper keys")
+// 		}
+// 		var keys []string
+// 		err = json.Unmarshal(keysBytes, &keys)
+// 		if err != nil {
+// 			fmt.Println("Error unmarshel keys")
+// 			return nil, errors.New("Error unmarshalling paper keys ")
+// 		}
+		
+// 		fmt.Println("Appending the new key to Paper Keys")
+// 		foundKey := false
+// 		for _, key := range keys {
+// 			if key == ptPrefix+pt.CUSIP {
+// 				foundKey = true
+// 			}
+// 		}
+// 		if foundKey == false {
+// 			keys = append(keys, ptPrefix+pt.CUSIP)
+// 			keysBytesToWrite, err := json.Marshal(&keys)
+// 			if err != nil {
+// 				fmt.Println("Error marshalling keys")
+// 				return nil, errors.New("Error marshalling the keys")
+// 			}
+// 			fmt.Println("Put state on PaperKeys")
+// 			err = stub.PutState("PaperKeys", keysBytesToWrite)
+// 			if err != nil {
+// 				fmt.Println("Error writting keys back")
+// 				return nil, errors.New("Error writing the keys back")
+// 			}
+// 		}
+		
+// 		fmt.Println("Issue commercial paper %+v\n", cp)
+// 		return nil, nil
+// 	} else {
+// 		fmt.Println("CUSIP exists")
+		
+// 		var ptrx pt
+// 		fmt.Println("Unmarshalling CP " + pt.CUSIP)
+// 		err = json.Unmarshal(ptRxBytes, &ptrx)
+// 		if err != nil {
+// 			fmt.Println("Error unmarshalling cp " + pt.CUSIP)
+// 			return nil, errors.New("Error unmarshalling cp " + pt.CUSIP)
+// 		}
+		
+// 		ptrx.Qty = ptrx.Qty + pt.Qty
+		
+// 		for key, val := range ptrx.Owners {
+// 			if val.Company == pt.Issuer {
+// 				ptrx.Owners[key].Quantity += pt.Qty
+// 				break
+// 			}
+// 		}
+				
+// 		ptWriteBytes, err := json.Marshal(&ptrx)
+// 		if err != nil {
+// 			fmt.Println("Error marshalling cp")
+// 			return nil, errors.New("Error issuing commercial paper")
+// 		}
+// 		err = stub.PutState(ptPrefix+pt.CUSIP, ptWriteBytes)
+// 		if err != nil {
+// 			fmt.Println("Error issuing paper")
+// 			return nil, errors.New("Error issuing commercial paper")
+// 		}
+
+// 		fmt.Println("Updated commercial paper %+v\n", ptrx)
+// 		return nil, nil
+// 	}
+// }
+
 
 func GetAllCPs(stub *shim.ChaincodeStub) ([]CP, error){
 	
@@ -435,6 +631,41 @@ func GetAllCPs(stub *shim.ChaincodeStub) ([]CP, error){
 	
 	return allCPs, nil
 }
+
+// func GetAllPTs(stub *shim.ChaincodeStub) ([]PT, error){
+	
+// 	var allPTs []PT
+	
+// 	// Get list of all the keys
+// 	keysBytes, err := stub.GetState("PaperKeys")
+// 	if err != nil {
+// 		fmt.Println("Error retrieving paper keys")
+// 		return nil, errors.New("Error retrieving paper keys")
+// 	}
+// 	var keys []string
+// 	err = json.Unmarshal(keysBytes, &keys)
+// 	if err != nil {
+// 		fmt.Println("Error unmarshalling paper keys")
+// 		return nil, errors.New("Error unmarshalling paper keys")
+// 	}
+
+// 	// Get all the cps
+// 	for _, value := range keys {
+// 		ptBytes, err := stub.GetState(value)
+		
+// 		var pt PT
+// 		err = json.Unmarshal(ptBytes, &pt)
+// 		if err != nil {
+// 			fmt.Println("Error retrieving pt " + value)
+// 			return nil, errors.New("Error retrieving pt " + value)
+// 		}
+		
+// 		fmt.Println("Appending PT" + value)
+// 		allPTs = append(allPTs, pt)
+// 	}	
+	
+// 	return allPTs, nil
+// }
 
 func GetCP(cpid string, stub *shim.ChaincodeStub) (CP, error){
 	var cp CP
@@ -736,7 +967,10 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
     } else if function == "init" {
         fmt.Println("Firing init")
         return t.init(stub, args)
-    }
+     } //else if function == "createPropertyTokens" {
+    // 	fmt.Println("firing createPropertyToken")
+    // 	return t.createPropertyToken(stud, args)
+    // }
 
 	return nil, errors.New("Received unknown function invocation")
 }
