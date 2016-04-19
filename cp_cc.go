@@ -92,18 +92,18 @@ type CP struct {
 
 
 //New Token created just for properties
-// type PT struct {
-// 	UUID 	  string  `json:"uuid"`
-// 	Name 	  string  `json:"name"`
-// 	BuyVal 	  float64 `json:"buyval"`
-// 	MktVal 	  float64 `json:"mktval"`
-// 	Addr 	  string  `json:"addr"`
-// 	Qty 	  string  `json:"qty"`
-// 	Owners 	  []Owner `json:"owner"`
-// 	Issuer 	  string  `json:"issuer"`
-// 	IssueDate string  `json:"issueDate"`
-// 	Maturity  int     `json:"maturity"`
-// }
+type PT struct {
+	UUID 	  string  `json:"uuid"`
+	Name 	  string  `json:"name"`
+	BuyVal 	  float64 `json:"buyval"`
+	MktVal 	  float64 `json:"mktval"`
+	Addr 	  string  `json:"addr"`
+	Qty 	  string  `json:"qty"`
+	Owners 	  []Owner `json:"owner"`
+	Issuer 	  string  `json:"issuer"`
+	IssueDate string  `json:"issueDate"`
+	Maturity  int     `json:"maturity"`
+}
 
 type Account struct {
 	ID          string  `json:"id"`
