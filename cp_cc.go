@@ -81,9 +81,7 @@ type Owner struct {
 type CP struct {
 	CUSIP     string  `json:"cusip"`
 	Ticker    string  `json:"ticker"`
-	HseAddr	  string  `json:"hseaddr"`
 	Par       float64 `json:"par"`
-	buyval       float64 `json:"buyval"`
 	Qty       int     `json:"qty"`
 	Discount  float64 `json:"discount"`
 	Maturity  int     `json:"maturity"`
