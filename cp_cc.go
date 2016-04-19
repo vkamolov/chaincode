@@ -132,15 +132,15 @@ func (t *SimpleChaincode) init(stub *shim.ChaincodeStub, args []string) ([]byte,
 
 	fmt.Println("Initialization complete")
 
-	fmt.Println("Initializing pt keys collection")
-	var blank2 []string
-	blankBytes, _ := json.Marshal(&blank2)
-	err := stub.PutState("PropertyKeys", blankBytes)
-    if err != nil {
-        fmt.Println("Failed to initialize property key collection")
-    }
+	// fmt.Println("Initializing pt keys collection")
+	// var blank2 []string
+	// blankBytes, _ := json.Marshal(&blank2)
+	// err := stub.PutState("PropertyKeys", blankBytes)
+ //    if err != nil {
+ //        fmt.Println("Failed to initialize property key collection")
+ //    }
 
-	fmt.Println("Initialization complete")
+	// fmt.Println("Initialization complete")
 
 	return nil, nil
 }
