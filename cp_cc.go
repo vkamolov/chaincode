@@ -427,7 +427,7 @@ func (t *SimpleChaincode) issueCommercialPaper(stub *shim.ChaincodeStub, args []
 	}
 }
 
-// func (t *SimpleChaincode) createPropertyToken(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+func (t *SimpleChaincode) createPropertyToken(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
 
 // 	/*		0
 // 		json
@@ -605,7 +605,7 @@ func (t *SimpleChaincode) issueCommercialPaper(stub *shim.ChaincodeStub, args []
 // 		fmt.Println("Updated commercial paper %+v\n", ptrx)
 // 		return nil, nil
 // 	}
-// }
+}
 
 
 func GetAllCPs(stub *shim.ChaincodeStub) ([]CP, error){
