@@ -23,7 +23,9 @@ Invoke has a few functions, primarily creating an account as well as issuing the
 
 ### Query
 
-Query simply queries the blockchain for details. Note that the structure of this is to send two arguments. The first is the query function you want to run, the second is any other variable you may need to include. For functions like GetAllCPs this will just require a blank arugment, however for something like GetCompany you will need 
+Query simply queries the blockchain for details. Note that the structure of this is to send two arguments. The first is the query function you want to run, the second is any other variable you may need to include. For functions like GetAllCPs this will just require a blank arugment, however for something like GetCompany you will need to provide the name of the company you're querying.
+
+As a note all these queries will return a json. 
 
 #### GetAllCPs
 
