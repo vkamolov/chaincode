@@ -19,7 +19,8 @@ type PTY struct {
 	CUSIP		string 	   `json:"uqe"`
 	Name		string 	   `json:"name"`
     Address     string     `json:"add"`
-    Value       float64    `json:"buyval"`
+    BuyValue    float64    `json:"buyval"`
+    MktValue    float64    `json:"mktval"`
     Qty         int        `json:"quantity"`
     Owners      []Owner    `json:"owner"`
     PT4Sale     []ForSale  `json:"forsale"`
@@ -43,7 +44,7 @@ type ForSale struct {
     Quantity   int      `json:"quantity"`
 }
 
-type transaction struct {
+type Transaction struct {
 	CUSIP       string   `json:"cusip"`
 	FromCompany string   `json:"fromCompany"`
 	ToCompany   string   `json:"toCompany"`
@@ -61,6 +62,11 @@ type Account struct {
 	Prefix      string  `json:"prefix"`
     CashBalance float64 `json:"cashBalance"`
 	AssetsIds   []string `json:"assetIds"`
+}
+
+type UpdateMktVal struct {
+    CUSIP       string   `json:"cusip"`
+    MktValue    float64  `json:"mktval"`
 }
 
 type SimpleChaincode struct {
@@ -216,6 +222,68 @@ func (t *SimpleChaincode) createAccount(stub *shim.ChaincodeStub, args []string)
     }
     
     
+}
+
+func (t *SimpleChaincode) updateMktVal(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+    if len(args) != 1 {
+        fmt.Println("error invalid arguments")
+        return nil, errors.New("Incorrect number of arguments. Expecting commercial paper record")
+    }
+
+    /*
+        type UpdateMktVal struct {
+        CUSIP       string   `json:"cusip"`
+        MktValue    float64  `json:"mktval"`
+}   */
+
+    var cp UpdateMktVal
+    var err error
+
+    var newstring = args[0]
+    newstring = strings.Replace(args[0],"'","\"",-1)
+
+    fmt.Println("Unmarshalling CP")
+    err = json.Unmarshal([]byte(newstring), &cp)
+    if err != nil {
+        fmt.Println("error invalid paper issue")
+        fmt.Println("error: ",err)
+        return nil, errors.New("Invalid commercial paper issue")
+    }
+
+
+    fmt.Println("Getting State on CP " + cp.CUSIP)
+    cpRxBytes, err := stub.GetState(ptyPrefix+cp.CUSIP)
+
+    if cpRxBytes != nil {
+        fmt.Println("CUSIP exists")
+        
+        var cprx PTY
+        fmt.Println("Unmarshalling CP " + cp.CUSIP)
+        err = json.Unmarshal(cpRxBytes, &cprx)
+        if err != nil {
+            fmt.Println("Error unmarshalling cp " + cp.CUSIP)
+            return nil, errors.New("Error unmarshalling cp " + cp.CUSIP)
+        }
+
+        cprx.MktValue = cp.MktValue
+
+        cpWriteBytes, err := json.Marshal(&cprx)
+        if err != nil {
+            fmt.Println("Error marshalling cp")
+            return nil, errors.New("Error issuing commercial paper")
+        }
+        err = stub.PutState(ptyPrefix+cp.CUSIP, cpWriteBytes)
+        if err != nil {
+            fmt.Println("Error issuing paper")
+            return nil, errors.New("Error issuing commercial paper")
+        }
+
+        fmt.Println("Updated commercial paper %+v\n", cprx)
+        return nil, nil
+    } else {
+        return nil, errors.New("Could not find Property Token")
+    }
+
 }
 
 func (t *SimpleChaincode) issuePropertyToken(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
@@ -466,8 +534,6 @@ func (t *SimpleChaincode) setForSale(stub *shim.ChaincodeStub, args []string) ([
         newOwner.InvestorID = fs.FromCompany
         cp.PT4Sale = append(cp.PT4Sale, newOwner)
     }
-    
-    fromCompany.AssetsIds = append(fromCompany.AssetsIds, fs.CUSIP)
 
     // Write everything back
     // To Company
@@ -560,6 +626,188 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
     return nil, nil
 }
 
+func (t *SimpleChaincode) transferPaper(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+    /*      0
+        json
+        {
+              "CUSIP": "",
+              "fromCompany":"",
+              "toCompany":"",
+              "quantity": 1
+        }
+    */
+    //need one arg
+    if len(args) != 1 {
+        return nil, errors.New("Incorrect number of arguments. Expecting commercial paper record")
+    }
+    
+    var tr Transaction
+
+    fmt.Println("Unmarshalling Transaction")
+    err := json.Unmarshal([]byte(strings.Replace(args[0],"'","\"",-1)), &tr)
+    if err != nil {
+        fmt.Println("Error Unmarshalling Transaction")
+        fmt.Println("err: ", err)
+        return nil, errors.New("Invalid commercial paper issue")
+    }
+
+    fmt.Println("Getting State on CP " + tr.CUSIP)
+    cpBytes, err := stub.GetState(ptyPrefix+tr.CUSIP)
+    if err != nil {
+        fmt.Println("CUSIP not found")
+        return nil, errors.New("CUSIP not found " + tr.CUSIP)
+    }
+
+    var cp PTY
+    fmt.Println("Unmarshalling CP " + tr.CUSIP)
+    err = json.Unmarshal(cpBytes, &cp)
+    if err != nil {
+        fmt.Println("Error unmarshalling cp " + tr.CUSIP)
+        return nil, errors.New("Error unmarshalling cp " + tr.CUSIP)
+    }
+
+    var fromCompany Account
+    fmt.Println("Getting State on fromCompany " + tr.FromCompany)   
+    fromCompanyBytes, err := stub.GetState(accountPrefix+tr.FromCompany)
+    if err != nil {
+        fmt.Println("Account not found " + tr.FromCompany)
+        return nil, errors.New("Account not found " + tr.FromCompany)
+    }
+
+    fmt.Println("Unmarshalling FromCompany ")
+    err = json.Unmarshal(fromCompanyBytes, &fromCompany)
+    if err != nil {
+        fmt.Println("Error unmarshalling account " + tr.FromCompany)
+        return nil, errors.New("Error unmarshalling account " + tr.FromCompany)
+    }
+
+    var toCompany Account
+    fmt.Println("Getting State on ToCompany " + tr.ToCompany)
+    toCompanyBytes, err := stub.GetState(accountPrefix+tr.ToCompany)
+    if err != nil {
+        fmt.Println("Account not found " + tr.ToCompany)
+        return nil, errors.New("Account not found " + tr.ToCompany)
+    }
+
+    fmt.Println("Unmarshalling tocompany")
+    err = json.Unmarshal(toCompanyBytes, &toCompany)
+    if err != nil {
+        fmt.Println("Error unmarshalling account " + tr.ToCompany)
+        return nil, errors.New("Error unmarshalling account " + tr.ToCompany)
+    }
+
+    // Check for all the possible errors
+    ownerFound := false 
+    quantity := 0
+    for _, owner := range cp.PT4Sale {
+        if owner.InvestorID == tr.FromCompany {
+            ownerFound = true
+            quantity = owner.Quantity
+        }
+    }
+    
+    // If fromCompany doesn't own this paper
+    if ownerFound == false {
+        fmt.Println("The company " + tr.FromCompany + "doesn't own any of this paper")
+        return nil, errors.New("The company " + tr.FromCompany + "doesn't own any of this paper")   
+    } else {
+        fmt.Println("The FromCompany does own this paper")
+    }
+    
+    // If fromCompany doesn't own enough quantity of this paper
+    if quantity < tr.Quantity {
+        fmt.Println("The company " + tr.FromCompany + "doesn't own enough of this paper")       
+        return nil, errors.New("The company " + tr.FromCompany + "doesn't own enough of this paper")            
+    } else {
+        fmt.Println("The FromCompany owns enough of this paper")
+    }
+    
+    amountToBeTransferred := float64(tr.Quantity) * cp.MktValue/100
+    
+    // If toCompany doesn't have enough cash to buy the papers
+    if toCompany.CashBalance < amountToBeTransferred {
+        fmt.Println("The company " + tr.ToCompany + "doesn't have enough cash to purchase the papers")      
+        return nil, errors.New("The company " + tr.ToCompany + "doesn't have enough cash to purchase the papers")   
+    } else {
+        fmt.Println("The ToCompany has enough money to be transferred for this paper")
+    }
+    
+    toCompany.CashBalance -= amountToBeTransferred
+    fromCompany.CashBalance += amountToBeTransferred
+
+    toOwnerFound := false
+    for key, owner := range cp.PT4Sale {
+        if owner.InvestorID == tr.FromCompany {
+            fmt.Println("Reducing Quantity from the FromCompany")
+            cp.PT4Sale[key].Quantity -= tr.Quantity
+//          owner.Quantity -= tr.Quantity
+        }
+        
+    }
+
+    for key, owner := range cp.Owners {
+        if owner.InvestorID == tr.ToCompany {
+            fmt.Println("Increasing Quantity from the ToCompany")
+            toOwnerFound = true
+            cp.Owners[key].Quantity += tr.Quantity
+//          owner.Quantity += tr.Quantity
+        }
+    }
+    
+    if toOwnerFound == false {
+        var newOwner Owner
+        fmt.Println("As ToOwner was not found, appending the owner to the CP")
+        newOwner.Quantity = tr.Quantity
+        newOwner.InvestorID = tr.ToCompany
+        cp.Owners = append(cp.Owners, newOwner)
+    }
+    
+    fromCompany.AssetsIds = append(fromCompany.AssetsIds, tr.CUSIP)
+
+    // Write everything back
+    // To Company
+    toCompanyBytesToWrite, err := json.Marshal(&toCompany)
+    if err != nil {
+        fmt.Println("Error marshalling the toCompany")
+        return nil, errors.New("Error marshalling the toCompany")
+    }
+    fmt.Println("Put state on toCompany")
+    err = stub.PutState(accountPrefix+tr.ToCompany, toCompanyBytesToWrite)
+    if err != nil {
+        fmt.Println("Error writing the toCompany back")
+        return nil, errors.New("Error writing the toCompany back")
+    }
+        
+    // From company
+    fromCompanyBytesToWrite, err := json.Marshal(&fromCompany)
+    if err != nil {
+        fmt.Println("Error marshalling the fromCompany")
+        return nil, errors.New("Error marshalling the fromCompany")
+    }
+    fmt.Println("Put state on fromCompany")
+    err = stub.PutState(accountPrefix+tr.FromCompany, fromCompanyBytesToWrite)
+    if err != nil {
+        fmt.Println("Error writing the fromCompany back")
+        return nil, errors.New("Error writing the fromCompany back")
+    }
+    
+    // cp
+    cpBytesToWrite, err := json.Marshal(&cp)
+    if err != nil {
+        fmt.Println("Error marshalling the cp")
+        return nil, errors.New("Error marshalling the cp")
+    }
+    fmt.Println("Put state on CP")
+    err = stub.PutState(ptyPrefix+tr.CUSIP, cpBytesToWrite)
+    if err != nil {
+        fmt.Println("Error writing the cp back")
+        return nil, errors.New("Error writing the cp back")
+    }
+    
+    fmt.Println("Successfully completed Invoke")
+    return nil, nil
+}
+
 func GetAllCPs(stub *shim.ChaincodeStub) ([]PTY, error){
     
     var allCPs []PTY
@@ -632,6 +880,12 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
     } else if function == "setForSale" {
         // Deletes an entity from its state
         return t.setForSale(stub, args)
+    } else if function == "transferPaper" {
+        // Deletes an entity from its state
+        return t.transferPaper(stub, args)
+    } else if function == "updateMktVal" {
+        // Deletes an entity from its state
+        return t.updateMktVal(stub, args)
     }
 
     return nil, errors.New("Received unknown function invocation")
