@@ -2,6 +2,18 @@
 
 ## DRAFT
 
+## Few Notes
+
+The current chaincode to use with IBM's bluemix blockchain is under the hyper folder. I am keeping the old code in the root directory solely because I haven't upgraded my dev enviornment to the hyper ledger space. Thus logic testing will be done using my old code. What all this means is that if you want to use my code for the blockchain, reference: 
+
+'''
+chaincode-master/hyper
+'''
+
+as the directory instead of the normal chaincode-master
+
+Cheers.
+
 ## Explanation of how to set up the chaincode in a developer environment
 
 Follow the guides at: 
