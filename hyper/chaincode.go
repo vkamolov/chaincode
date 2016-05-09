@@ -880,38 +880,38 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
     fmt.Println("run is running " + function)
     return t.Invoke(stub, function, args)
     // Handle different functions
-    if function == "init" {
-        // Initialize the entities and their asset holdings
-        return t.init(stub, args)
-    } else if function == "issuePropertyToken" {
-        // transaction makes payment of X units from A to B
-        return t.issuePropertyToken(stub, args)
-    } else if function == "createAccount" {
-        // Deletes an entity from its state
-        return t.createAccount(stub, args)
-    } else if function == "createAccounts" {
-        // Deletes an entity from its state
-        return t.createAccounts(stub, args)
-    } else if function == "setForSale" {
-        // Deletes an entity from its state
-        return t.setForSale(stub, args)
-    } else if function == "transferPaper" {
-        // Deletes an entity from its state
-        return t.transferPaper(stub, args)
-    } else if function == "updateMktVal" {
-        // Deletes an entity from its state
-        return t.updateMktVal(stub, args)
-    }
+    // if function == "init" {
+    //     // Initialize the entities and their asset holdings
+    //     return t.init(stub,"init", args)
+    // } else if function == "issuePropertyToken" {
+    //     // transaction makes payment of X units from A to B
+    //     return t.issuePropertyToken(stub, args)
+    // } else if function == "createAccount" {
+    //     // Deletes an entity from its state
+    //     return t.createAccount(stub, args)
+    // } else if function == "createAccounts" {
+    //     // Deletes an entity from its state
+    //     return t.createAccounts(stub, args)
+    // } else if function == "setForSale" {
+    //     // Deletes an entity from its state
+    //     return t.setForSale(stub, args)
+    // } else if function == "transferPaper" {
+    //     // Deletes an entity from its state
+    //     return t.transferPaper(stub, args)
+    // } else if function == "updateMktVal" {
+    //     // Deletes an entity from its state
+    //     return t.updateMktVal(stub, args)
+    // }
 
-    return nil, errors.New("Received unknown function invocation")
+    // return nil, errors.New("Received unknown function invocation")
 }
 
 func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
-    fmt.Println("invoke is running ", + function)
+    fmt.Println("invoke is running " + function)
 
-    if function == "init" {
+    if function == "Init" {
         // Initialize the entities and their asset holdings
-        return t.init(stub, args)
+        return t.Init(stub,"init", args)
     } else if function == "issuePropertyToken" {
         // transaction makes payment of X units from A to B
         return t.issuePropertyToken(stub, args)
@@ -926,6 +926,7 @@ func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args
         return t.setForSale(stub, args)
     } else if function == "transferPaper" {
         // Deletes an entity from its state
+        fmt.Println("firing transferPaper")
         return t.transferPaper(stub, args)
     } else if function == "updateMktVal" {
         // Deletes an entity from its state
