@@ -174,7 +174,7 @@ func (t *SimpleChaincode) createAccount(stub *shim.ChaincodeStub, args []string)
     var assetIds []string
     suffix := "000A"
     prefix := username + suffix
-    var account = Account{ID: username, Prefix: prefix, AssetsIds: assetIds}
+    var account = Account{ID: username, Prefix: prefix, CashBalance: 10000000.0, AssetsIds: assetIds}
     accountBytes, err := json.Marshal(&account)
     fmt.Println("Creating accounts")
     if err != nil {
