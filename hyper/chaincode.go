@@ -16,7 +16,7 @@ var accountPrefix = "acct:"
 var accountsKey = "accounts"
 
 type PTY struct {
-	CUSIP		string 	   `json:"uqe"`
+	CUSIP		string 	   `json:"cusip"`
 	Name		string 	   `json:"name"`
     AdrStreet   string     `json:"adrStreet"`
     AdrCity     string     `json:"adrCity"`
