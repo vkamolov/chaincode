@@ -18,7 +18,10 @@ var accountsKey = "accounts"
 type PTY struct {
 	CUSIP		string 	   `json:"uqe"`
 	Name		string 	   `json:"name"`
-    Address     string     `json:"add"`
+    AdrStreet   string     `json:"adrStreet"`
+    AdrCity     string     `json:"adrCity"`
+    AdrPostcode string     `json:"adrPostcode"`
+    AdrState    string     `json:"adrState"`
     BuyValue    float64    `json:"buyval"`
     MktValue    float64    `json:"mktval"`
     Qty         int        `json:"quantity"`
@@ -338,7 +341,10 @@ func (t *SimpleChaincode) issuePropertyToken(stub *shim.ChaincodeStub, args []st
 
     fmt.Println("Hey guys, this is what we got:")
     fmt.Println("CP.name is   : ", cp.Name)
-    fmt.Println("CP.Address is: ", cp.Address)
+    fmt.Println("CP.Address is: ", cp.AdrStreet)
+    fmt.Println("CP.Address is: ", cp.AdrCity)
+    fmt.Println("CP.Address is: ", cp.AdrPostcode)
+    fmt.Println("CP.Address is: ", cp.AdrState)
 
     fmt.Println("Getting state of - " + accountPrefix + cp.Issuer)
     accountBytes, err := stub.GetState(accountPrefix + cp.Issuer)
