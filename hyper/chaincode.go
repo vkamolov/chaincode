@@ -595,19 +595,19 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
             fmt.Println("All success, returning the company")
             return companyBytes, nil         
         }
-    } else if args[0] == "GetAllCPs" {
+    } else if args[0] == "GetAllPTYs" {
         fmt.Println("Getting all CPs")
-        allCPs, err := GetAllCPs(stub)
+        allCPs, err := GetAllPTYs(stub)
         if err != nil {
-            fmt.Println("Error from getallcps")
+            fmt.Println("Error from GetAllPTYs")
             return nil, err
         } else {
             allCPsBytes, err1 := json.Marshal(&allCPs)
             if err1 != nil {
-                fmt.Println("Error marshalling allcps")
+                fmt.Println("Error marshalling allptys")
                 return nil, err1
             }   
-            fmt.Println("All success, returning allcps")
+            fmt.Println("All success, returning allptys")
             return allCPsBytes, nil      
         }
     } else {
@@ -625,11 +625,11 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
     }
 
     
-    // if args[0] == "GetAllCPs" {
+    // if args[0] == "GetAllPTYs" {
     //     fmt.Println("Getting all CPs")
-    //     allCPs, err := GetAllCPs(stub)
+    //     allCPs, err := GetAllPTYs(stub)
     //     if err != nil {
-    //         fmt.Println("Error from getallcps")
+    //         fmt.Println("Error from GetAllPTYs")
     //         return nil, err
     //     } else {
     //         allCPsBytes, err1 := json.Marshal(&allCPs)
@@ -826,7 +826,7 @@ func (t *SimpleChaincode) transferPaper(stub *shim.ChaincodeStub, args []string)
     return nil, nil
 }
 
-func GetAllCPs(stub *shim.ChaincodeStub) ([]PTY, error){
+func GetAllPTYs(stub *shim.ChaincodeStub) ([]PTY, error){
     
     var allCPs []PTY
     
