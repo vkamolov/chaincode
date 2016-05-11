@@ -749,9 +749,12 @@ func (t *SimpleChaincode) transferPaper(stub *shim.ChaincodeStub, args []string)
     } else {
         fmt.Println("The ToCompany has enough money to be transferred for this paper")
     }
-    
-    toCompany.CashBalance -= amountToBeTransferred
-    fromCompany.CashBalance += amountToBeTransferred
+
+    // Checking to see if the shares are revoked
+    if tr.FromCompany != tr.ToCompany {
+        toCompany.CashBalance -= amountToBeTransferred
+        fromCompany.CashBalance += amountToBeTransferred
+    }
 
     toOwnerFound := false
     for key, owner := range cp.PT4Sale {
