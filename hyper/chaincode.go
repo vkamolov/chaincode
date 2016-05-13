@@ -29,6 +29,7 @@ type PTY struct {
     PT4Sale     []ForSale  `json:"forsale"`
     Issuer      string     `json:"issuer"`
     IssueDate   string     `json:"issueDate"`
+    Status      string     `json:"status"`
 }
 
 type IP struct {
@@ -45,6 +46,7 @@ type Owner struct {
 type ForSale struct {
     InvestorID string   `json:"invid"`
     Quantity   int      `json:"quantity"`
+    SellVal    float64  `json:"sellval"`
 }
 
 type Transaction struct {
@@ -58,6 +60,7 @@ type AddForSale struct {
     CUSIP       string   `json:"cusip"`
     FromCompany string   `json:"fromCompany"`
     Quantity    int      `json:"quantity"`
+    SellVal     float64  `json:"sellval"`
 }
 
 type Account struct {
@@ -269,6 +272,7 @@ func (t *SimpleChaincode) updateMktVal(stub *shim.ChaincodeStub, args []string) 
         }
 
         cprx.MktValue = cp.MktValue
+        cprx.Status = "Approved"
 
         cpWriteBytes, err := json.Marshal(&cprx)
         if err != nil {
@@ -345,7 +349,10 @@ func (t *SimpleChaincode) issuePropertyToken(stub *shim.ChaincodeStub, args []st
     fmt.Println("CP.Address is: ", cp.AdrCity)
     fmt.Println("CP.Address is: ", cp.AdrPostcode)
     fmt.Println("CP.Address is: ", cp.AdrState)
-
+    if cp.CUSIP == "" {
+        fmt.Println("No CUSIP, returning error")
+        return nil, errors.New("CUSIP cannot be blank")
+    }
     fmt.Println("Getting state of - " + accountPrefix + cp.Issuer)
     accountBytes, err := stub.GetState(accountPrefix + cp.Issuer)
     if err != nil {
@@ -445,6 +452,7 @@ func (t *SimpleChaincode) setForSale(stub *shim.ChaincodeStub, args []string) ([
     //     CUSIP       string   `json:"cusip"`
     //     FromCompany string   `json:"fromCompany"`
     //     Quantity    int      `json:"quantity"`
+    //     SellVal     float64  `json:"sellval"`
     // }
 
     //need one arg
@@ -530,6 +538,7 @@ func (t *SimpleChaincode) setForSale(stub *shim.ChaincodeStub, args []string) ([
             FromOwnerFound = true
             fmt.Println("Found company in For Sale")
             cp.PT4Sale[key].Quantity += fs.Quantity
+            cp.PT4Sale[key].SellVal = fs.SellVal
         }
     }
     
@@ -538,6 +547,7 @@ func (t *SimpleChaincode) setForSale(stub *shim.ChaincodeStub, args []string) ([
         fmt.Println("As FromOwner was not found in ForSale, appending the owner to the CP")
         newOwner.Quantity = fs.Quantity
         newOwner.InvestorID = fs.FromCompany
+        newOwner.SellVal = fs.SellVal
         cp.PT4Sale = append(cp.PT4Sale, newOwner)
     }
 
@@ -717,10 +727,12 @@ func (t *SimpleChaincode) transferPaper(stub *shim.ChaincodeStub, args []string)
     // Check for all the possible errors
     ownerFound := false 
     quantity := 0
+    price := 0.00
     for _, owner := range cp.PT4Sale {
         if owner.InvestorID == tr.FromCompany {
             ownerFound = true
             quantity = owner.Quantity
+            price = owner.SellVal
         }
     }
     
@@ -740,7 +752,7 @@ func (t *SimpleChaincode) transferPaper(stub *shim.ChaincodeStub, args []string)
         fmt.Println("The FromCompany owns enough of this paper")
     }
     
-    amountToBeTransferred := float64(tr.Quantity) * cp.MktValue/float64(cp.Qty)
+    amountToBeTransferred := float64(tr.Quantity) * price
     
     // If toCompany doesn't have enough cash to buy the papers
     if toCompany.CashBalance < amountToBeTransferred {
