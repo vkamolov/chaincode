@@ -349,6 +349,7 @@ func (t *SimpleChaincode) issuePropertyToken(stub *shim.ChaincodeStub, args []st
     fmt.Println("CP.Address is: ", cp.AdrCity)
     fmt.Println("CP.Address is: ", cp.AdrPostcode)
     fmt.Println("CP.Address is: ", cp.AdrState)
+    cp.Status = "Pending"
     if cp.CUSIP == "" {
         fmt.Println("No CUSIP, returning error")
         return nil, errors.New("CUSIP cannot be blank")
@@ -365,7 +366,7 @@ func (t *SimpleChaincode) issuePropertyToken(stub *shim.ChaincodeStub, args []st
         return nil, errors.New("Error retrieving account " + cp.Issuer)
     }
     
-    account.AssetsIds = append(account.AssetsIds, cp.CUSIP)
+    //account.AssetsIds = append(account.AssetsIds, cp.CUSIP)
 
     var owner Owner
     owner.InvestorID = cp.Issuer
@@ -795,7 +796,7 @@ func (t *SimpleChaincode) transferPaper(stub *shim.ChaincodeStub, args []string)
         cp.Owners = append(cp.Owners, newOwner)
     }
     
-    fromCompany.AssetsIds = append(fromCompany.AssetsIds, tr.CUSIP)
+    //fromCompany.AssetsIds = append(fromCompany.AssetsIds, tr.CUSIP)
 
     // Write everything back
     // To Company
