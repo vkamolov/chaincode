@@ -33,12 +33,6 @@ type PTY struct {
     Status      string     `json:"status"`
 }
 
-type IP struct {
-    UNIQUE      string      `json:"uqe"`
-    AssetID     string      `json:"aid"`
-    Owners      []Owner     `json:"owner"`
-}
-
 type Owner struct {
 	InvestorID string    `json:"invid"`
 	Quantity int      `json:"quantity"`
@@ -81,6 +75,13 @@ type UpdateMktVal struct {
     MktValue    float64  `json:"mktval"`
 }
 
+
+type payRent struct {
+    CUSIP       string   `json:"cusip"`
+    payment     float64  `json:"payment"`
+    issuer      string   `json:"issuer"`
+}
+
 type SimpleChaincode struct {
 }
 
@@ -98,8 +99,6 @@ func msToTime(ms string) (time.Time, error) {
     return time.Unix(msInt/millisPerSecond,
         (msInt%millisPerSecond)*nanosPerMillisecond), nil
 }
-
-
 
 func genHash(issueDate string, days int) (string, error) {
 
@@ -289,6 +288,83 @@ func (t *SimpleChaincode) updateMktVal(stub *shim.ChaincodeStub, args []string) 
         if err != nil {
             fmt.Println("Error issuing paper")
             return nil, errors.New("Error issuing commercial paper")
+        }
+
+        fmt.Println("Updated commercial paper %+v\n", cprx)
+        return nil, nil
+    } else {
+        return nil, errors.New("Could not find Property Token")
+    }
+
+}
+
+func (t *SimpleChaincode) processRent(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+    if len(args) != 1 {
+        fmt.Println("error invalid arguments")
+        return nil, errors.New("Incorrect number of arguments. Expecting payRent record")
+    }
+
+    /*
+        type UpdateMktVal struct {
+        CUSIP       string   `json:"cusip"`
+        MktValue    float64  `json:"mktval"`
+}   */
+
+    var cp payRent
+    var err error
+
+    var newstring = args[0]
+    newstring = strings.Replace(args[0],"'","\"",-1)
+
+    fmt.Println("Unmarshalling CP")
+    err = json.Unmarshal([]byte(newstring), &cp)
+    if err != nil {
+        fmt.Println("error invalid paper issue")
+        fmt.Println("error: ",err)
+        return nil, errors.New("Invalid commercial paper issue")
+    }
+
+    // Get state of the PTY that rent is being paid out to.
+
+    fmt.Println("Getting State on PTY " + cp.CUSIP)
+    cpRxBytes, err := stub.GetState(ptyPrefix+cp.CUSIP)
+
+    if cpRxBytes != nil {
+        fmt.Println("CUSIP exists")
+        
+        var cprx PTY
+        fmt.Println("Unmarshalling CP " + cp.CUSIP)
+        err = json.Unmarshal(cpRxBytes, &cprx)
+        if err != nil {
+            fmt.Println("Error unmarshalling cp " + cp.CUSIP)
+            return nil, errors.New("Error unmarshalling cp " + cp.CUSIP)
+        }
+
+        // Add in logic to figure out quantities each owner has, divide by quantity and send to all owners
+
+        var currOwners []Owner = cp.Owners
+        // Calculate what each token gets in terms of rent
+        var calculatedRent = cp.Payment/float64(cp.Qty)
+
+        // Making sure that we calculate what is up for sale as well as part of quantity
+        for owner := range cp.ForSale {
+            for curOwner := range currOwners {
+                if owner.InvestorID == curOwner.InvestorID {
+                    curOwner.Quantity += owner.Quantity
+                }
+            }
+        }
+
+        cpWriteBytes, err := json.Marshal(&cprx)
+        if err != nil {
+            fmt.Println("Error marshalling cp")
+            return nil, errors.New("Error writing property")
+        }
+
+        err = stub.PutState(ptyPrefix+cp.CUSIP, cpWriteBytes)
+        if err != nil {
+            fmt.Println("Error issuing paper")
+            return nil, errors.New("Error writing property")
         }
 
         fmt.Println("Updated commercial paper %+v\n", cprx)
