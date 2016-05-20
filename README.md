@@ -49,6 +49,7 @@ type PTY struct {
     Qty         int        `json:"quantity"`
     Owners      []Owner    `json:"owner"`
     PT4Sale     []ForSale  `json:"forsale"`
+    Links       []UrlLnk   `json:"urlLink"` // This was recently added so we could store html links with properties. This doens't mean you have to use this in your webapp.
     Issuer      string     `json:"issuer"`
     IssueDate   string     `json:"issueDate"`
 ```
@@ -79,6 +80,16 @@ type UpdateMktVal struct {
     MktValue    float64  `json:"mktval"`
 }
 ```
+
+#### processRent
+
+You can make another account send rent to people who own the property you rae currently renting. Simply send the invoke with the function: processRent with the following struct:
+
+type PayRent struct {
+    CUSIP       string   `json:"cusip"`   // property ID
+    Payment     float64  `json:"payment"` // amount of rent being paid
+    Issuer      string   `json:"issuer"`  // person paying the rent
+}
 
 #### createAccount
 
