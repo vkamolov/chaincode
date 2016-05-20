@@ -50,7 +50,7 @@ type ForSale struct {
     SellVal    float64  `json:"sellval"`
 }
 
-type urlLnk struct {
+type UrlLnk struct {
     url         string   `json:"url"`
     urlType     string   `json:"urlType"`
 }
