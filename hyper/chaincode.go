@@ -33,12 +33,6 @@ type PTY struct {
     Status      string     `json:"status"`
 }
 
-type IP struct {
-    UNIQUE      string      `json:"uqe"`
-    AssetID     string      `json:"aid"`
-    Owners      []Owner     `json:"owner"`
-}
-
 type Owner struct {
 	InvestorID string    `json:"invid"`
 	Quantity int      `json:"quantity"`
@@ -81,6 +75,13 @@ type UpdateMktVal struct {
     MktValue    float64  `json:"mktval"`
 }
 
+
+type PayRent struct {
+    CUSIP       string   `json:"cusip"`
+    Payment     float64  `json:"payment"`
+    Issuer      string   `json:"issuer"`
+}
+
 type SimpleChaincode struct {
 }
 
@@ -98,8 +99,6 @@ func msToTime(ms string) (time.Time, error) {
     return time.Unix(msInt/millisPerSecond,
         (msInt%millisPerSecond)*nanosPerMillisecond), nil
 }
-
-
 
 func genHash(issueDate string, days int) (string, error) {
 
@@ -296,6 +295,128 @@ func (t *SimpleChaincode) updateMktVal(stub *shim.ChaincodeStub, args []string) 
     } else {
         return nil, errors.New("Could not find Property Token")
     }
+
+}
+
+func (t *SimpleChaincode) processRent(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+    if len(args) != 1 {
+        fmt.Println("error invalid arguments")
+        return nil, errors.New("Incorrect number of arguments. Expecting payRent record")
+    }
+
+    /*
+        type UpdateMktVal struct {
+        CUSIP       string   `json:"cusip"`
+        MktValue    float64  `json:"mktval"`
+}   */
+
+    var cp PayRent
+    var err error
+
+    var newstring = args[0]
+    newstring = strings.Replace(args[0],"'","\"",-1)
+
+    fmt.Println("Unmarshalling CP")
+    err = json.Unmarshal([]byte(newstring), &cp)
+    if err != nil {
+        fmt.Println("error invalid paper issue")
+        fmt.Println("error: ",err)
+        return nil, errors.New("Invalid commercial paper issue")
+    }
+    var username = cp.Issuer
+ //   suffix := "000A"
+//    prefix := username + suffix
+    var renter Account
+
+    // Get state of renter account
+    existingBytes, err := stub.GetState(accountPrefix + username)
+    if err == nil {
+        err = json.Unmarshal(existingBytes, &renter)
+        if err == nil {
+
+            // Check he has enough cash
+
+            if (renter.CashBalance >= cp.Payment) {
+                renter.CashBalance -= cp.Payment;
+            } else {
+                fmt.Println("Renter doesn't have enough money!")
+                return nil, errors.New("Renter doens't have enough money!")
+            }
+
+        } else {
+            fmt.Println("Cannot find renter account")
+            return nil, errors.New("Failed to find renter account")
+        }
+    }
+    var currOwners []Owner
+    var currSellers []ForSale
+    var rentPerToken float64    
+    var cprx PTY
+    // Get state of the PTY that rent is being paid out to.
+
+    fmt.Println("Getting State on PTY " + cp.CUSIP)
+    cpRxBytes, err := stub.GetState(ptyPrefix+cp.CUSIP)
+
+    if cpRxBytes != nil {
+        fmt.Println("CUSIP exists")
+        
+        
+        fmt.Println("Unmarshalling CP " + cp.CUSIP)
+        err = json.Unmarshal(cpRxBytes, &cprx)
+        if err != nil {
+            fmt.Println("Error unmarshalling cp " + cp.CUSIP)
+            return nil, errors.New("Error unmarshalling cp " + cp.CUSIP)
+        }
+
+        // Add in logic to figure out quantities each owner has, divide by quantity and send to all owners
+
+        currOwners = cprx.Owners
+        currSellers = cprx.PT4Sale
+        // Calculate what each token gets in terms of rent
+        rentPerToken = cp.Payment/float64(cprx.Qty)
+
+        // Making sure that we calculate what is up for sale as well as part of quantity
+        
+    }
+    for _, owner := range currSellers {
+            // for _, curOwner := range currOwners {
+            //     if owner.InvestorID == curOwner.InvestorID {
+            //         curOwner.Quantity += owner.Quantity
+            //         fmt.Println("Found owner that has more quantity, adding to curOnwer")
+            //         fmt.Println(curOwner.Quantity)
+            //     }
+            // }
+
+        for i := 0; i < len(currOwners); i++ {
+            if owner.InvestorID == currOwners[i].InvestorID {
+                currOwners[i].Quantity += owner.Quantity
+                fmt.Println("Found owner that has more quantity, adding to curOnwer")
+                fmt.Println(currOwners[i].Quantity)
+            }
+        }
+    }
+    
+    for _, curOwner := range currOwners {
+        existingBytes, err := stub.GetState(accountPrefix + curOwner.InvestorID)
+        if err == nil {
+            // Unmarshal the damn bytes
+            var ownerAccts Account
+            err = json.Unmarshal(existingBytes,&ownerAccts)
+            fmt.Println("curOwner quantity is: ", curOwner.Quantity)
+            ownerAccts.CashBalance+=rentPerToken * float64(curOwner.Quantity)
+            acctBytes, err := json.Marshal(&ownerAccts)
+            if err == nil {
+                err = stub.PutState(accountPrefix+curOwner.InvestorID, acctBytes)
+            } else {
+                fmt.Println("Egads, something went wrong with Marshalling")
+                return nil, errors.New("Egads, something went wrong with Marshalling")
+            }
+            
+        } else {
+            return nil, errors.New("Failed to add rent to owners") 
+        }
+    }
+    return nil, nil
 
 }
 
@@ -959,6 +1080,9 @@ func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args
     } else if function == "updateMktVal" {
         // Deletes an entity from its state
         return t.updateMktVal(stub, args)
+    } else if function == "processRent" {
+        // Deletes an entity from its state
+        return t.processRent(stub, args)
     }
 
     fmt.Println("Function"+ function +" was not found under invocation")
