@@ -51,8 +51,8 @@ type ForSale struct {
 }
 
 type UrlLnk struct {
-    url         string   `json:"url"`
-    urlType     string   `json:"urlType"`
+    Url         string   `json:"url"`
+    UrlType     string   `json:"urlType"`
 }
 
 type Transaction struct {
