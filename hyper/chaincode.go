@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 	"strings"
+    "crypto/md5"
+    "encoding/hex"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -100,18 +102,17 @@ func msToTime(ms string) (time.Time, error) {
         (msInt%millisPerSecond)*nanosPerMillisecond), nil
 }
 
-func genHash(issueDate string, days int) (string, error) {
+func genHash(text string) (string, error) {
 
-    t, err := msToTime(issueDate)
-    if err != nil {
-        return "", err
-    }
+    hasher := md5.New()
+    hasher.Write([]byte(text))
 
-    maturityDate := t.AddDate(0, 0, days)
-    month := int(maturityDate.Month())
-    day := maturityDate.Day()
 
-    suffix := seventhDigit[month] + eigthDigit[day]
+    // maturityDate := t.AddDate(0, 0, days)
+    // month := int(maturityDate.Month())
+    // day := maturityDate.Day()
+
+    suffix := hex.EncodeToString(hasher.Sum(nil))
     return suffix, nil
 
 }
@@ -119,7 +120,11 @@ func genHash(issueDate string, days int) (string, error) {
 func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
     // Initialize the collection of commercial paper keys
     fmt.Println("Initializing Property keys collection")
-	var blank []string
+	
+    // Check if state already exists
+
+
+    var blank []string
 	blankBytes, _ := json.Marshal(&blank)
 	err := stub.PutState("PtyKeys", blankBytes)
     if err != nil {
@@ -477,6 +482,14 @@ func (t *SimpleChaincode) issuePropertyToken(stub *shim.ChaincodeStub, args []st
     fmt.Println("CP.Address is: ", cp.AdrPostcode)
     fmt.Println("CP.Address is: ", cp.AdrState)
     cp.Status = "Pending"
+    // Create string for hash
+
+    stringHash := cp.AdrStreet+cp.AdrCity+cp.AdrPostcode+cp.AdrState
+
+    cp.CUSIP, err = genHash(stringHash)
+
+    fmt.Println("cusip is: ", cp.CUSIP)
+
     if cp.CUSIP == "" {
         fmt.Println("No CUSIP, returning error")
         return nil, errors.New("CUSIP cannot be blank")
@@ -1028,31 +1041,7 @@ func (t *SimpleChaincode) Run(stub *shim.ChaincodeStub, function string, args []
 
     fmt.Println("run is running " + function)
     return t.Invoke(stub, function, args)
-    // Handle different functions
-    // if function == "init" {
-    //     // Initialize the entities and their asset holdings
-    //     return t.init(stub,"init", args)
-    // } else if function == "issuePropertyToken" {
-    //     // transaction makes payment of X units from A to B
-    //     return t.issuePropertyToken(stub, args)
-    // } else if function == "createAccount" {
-    //     // Deletes an entity from its state
-    //     return t.createAccount(stub, args)
-    // } else if function == "createAccounts" {
-    //     // Deletes an entity from its state
-    //     return t.createAccounts(stub, args)
-    // } else if function == "setForSale" {
-    //     // Deletes an entity from its state
-    //     return t.setForSale(stub, args)
-    // } else if function == "transferPaper" {
-    //     // Deletes an entity from its state
-    //     return t.transferPaper(stub, args)
-    // } else if function == "updateMktVal" {
-    //     // Deletes an entity from its state
-    //     return t.updateMktVal(stub, args)
-    // }
 
-    // return nil, errors.New("Received unknown function invocation")
 }
 
 func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
