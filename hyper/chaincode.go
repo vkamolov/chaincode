@@ -29,6 +29,7 @@ type PTY struct {
     Qty         int        `json:"quantity"`
     Owners      []Owner    `json:"owner"`
     PT4Sale     []ForSale  `json:"forsale"`
+    Renters     []Renter   `json:"renters"`
     Links       []UrlLnk   `json:"urlLink"`
     Issuer      string     `json:"issuer"`
     IssueDate   string     `json:"issueDate"`
@@ -38,6 +39,11 @@ type PTY struct {
 type Owner struct {
 	InvestorID string    `json:"invid"`
 	Quantity int      `json:"quantity"`
+}
+
+type Renter struct {
+    RenterID string    `json:"rentid"`
+    RentBill float64   `json:"bill"`
 }
 
 type ForSale struct {
