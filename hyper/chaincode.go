@@ -105,7 +105,7 @@ func msToTime(ms string) (time.Time, error) {
 func genHash(text string) (string, error) {
 
     hasher := md5.New()
-    hasher.Write([]byte(text))
+    hasher.Write([]byte(strings.ToUpper(text)))
 
 
     // maturityDate := t.AddDate(0, 0, days)
