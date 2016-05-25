@@ -128,14 +128,23 @@ func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args [
     fmt.Println("Initializing Property keys collection")
 	
     // Check if state already exists
-
-
-    var blank []string
-	blankBytes, _ := json.Marshal(&blank)
-	err := stub.PutState("PtyKeys", blankBytes)
-    if err != nil {
-        fmt.Println("Failed to initialize property key collection")
+    fmt.Println("Getting Property Keys")
+    keysBytes, err := stub.GetState("PtyKeys")
+    if keysBytes == nil {
+        fmt.Println("Cannot find PtyKeys, will reinitialize everything")
+        var blank []string
+        blankBytes, _ := json.Marshal(&blank)
+        err := stub.PutState("PtyKeys", blankBytes)
+        if err != nil {
+            fmt.Println("Failed to initialize property key collection")
+        }
+    } else if err != nil {
+         fmt.Println("Failed to initialize property key collection")
+    } else {
+        fmt.Println("Found property keyBytes. Will not overwrite keys.")
     }
+
+
 
 	fmt.Println("Initialization complete")
 
@@ -583,8 +592,7 @@ func (t *SimpleChaincode) issuePropertyToken(stub *shim.ChaincodeStub, args []st
                 return nil, errors.New("Error writing the keys back")
             }
         }
-        fmt.Println("Issue commercial paper %+v\n", cp)
-        fmt.Println("Whee done")
+        fmt.Println("Issue Property Token %+v\n", cp)
         return nil, nil
     } else {
         fmt.Println("You can't tokenize an asset that already exists")
