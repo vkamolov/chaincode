@@ -1207,8 +1207,9 @@ func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args
     } else if function == "setRent" {
         // Deletes an entity from its state
         return t.setRent(stub, args)
+    } else if function == "setRenters" {
+       return t.setRenters(stub, args[0], args[1], args[2])
     }
-
 
     fmt.Println("Function"+ function +" was not found under invocation")
     return nil, errors.New("Received unknown function invocation")
