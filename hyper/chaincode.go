@@ -31,6 +31,7 @@ type PTY struct {
     PT4Sale     []ForSale  `json:"forsale"`
     Renters     []Renter   `json:"renters"`
     Links       []UrlLnk   `json:"urlLink"`
+    Rent        float64    `json:"rent"`
     Issuer      string     `json:"issuer"`
     IssueDate   string     `json:"issueDate"`
     Status      string     `json:"status"`
@@ -43,7 +44,6 @@ type Owner struct {
 
 type Renter struct {
     RenterID string    `json:"rentid"`
-    RentBill float64   `json:"bill"`
 }
 
 type ForSale struct {
@@ -76,6 +76,19 @@ type Account struct {
 	Prefix      string  `json:"prefix"`
     CashBalance float64 `json:"cashBalance"`
 	AssetsIds   []string `json:"assetIds"`
+    RentingPty  string   `json:"rentingpty"`
+}
+
+type SetRenter struct {
+    CUSIP       string  `json:"cusip"`
+    Action      string  `json:"action"`
+    RenterName  string  `json:"invid"`
+}
+
+type SetRentValue struct {
+    CUSIP       string  `json:"cusip"`
+    Value       float64 `json:"value"`
+    Issuer      string  `json:"invid"`
 }
 
 type UpdateMktVal struct {
@@ -318,6 +331,77 @@ func (t *SimpleChaincode) updateMktVal(stub *shim.ChaincodeStub, args []string) 
 
 }
 
+func (t *SimpleChaincode) setRent(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
+    if len(args) != 1 {
+        fmt.Println("error invalid arguments")
+        return nil, errors.New("Incorrect number of arguments. Expecting commercial paper record")
+    }
+
+/*type SetRentValue struct {
+    CUSIP       string  `json:"cusip"`
+    Value       float64 `json:"value"`
+    Issuer      string  `json:"invid"`
+}*/
+
+    var cp SetRentValue
+    var err error
+
+    var newstring = args[0]
+    newstring = strings.Replace(args[0],"'","\"",-1)
+
+    fmt.Println("Unmarshalling Data")
+    err = json.Unmarshal([]byte(newstring), &cp)
+    if err != nil {
+        fmt.Println("error invalid Data issue")
+        fmt.Println("error: ",err)
+        return nil, errors.New("Invalid Data issue")
+    }
+    fmt.Println("Getting state of - " + accountPrefix + cp.Issuer)
+    accountBytes, err := stub.GetState(accountPrefix + cp.Issuer)
+    if err != nil {
+        fmt.Println("Error Getting state of - " + accountPrefix + cp.Issuer)
+        return nil, errors.New("Error retrieving account " + cp.Issuer)
+    }
+    if accountBytes != nil {
+        fmt.Println("Lol how did you get here")
+        return nil, errors.New("Error retrieving account " + cp.Issuer)
+    }
+
+    fmt.Println("Getting State on PTY " + cp.CUSIP)
+    cpRxBytes, err := stub.GetState(ptyPrefix+cp.CUSIP)
+
+    if cpRxBytes != nil {
+        fmt.Println("CUSIP exists")
+        
+        var cprx PTY
+        fmt.Println("Unmarshalling PTY " + cp.CUSIP)
+        err = json.Unmarshal(cpRxBytes, &cprx)
+        if err != nil {
+            fmt.Println("Error unmarshalling cp " + cp.CUSIP)
+            return nil, errors.New("Error unmarshalling cp " + cp.CUSIP)
+        }
+
+        cprx.Rent = cp.Value
+
+        cpWriteBytes, err := json.Marshal(&cprx)
+        if err != nil {
+            fmt.Println("Error marshalling cp")
+            return nil, errors.New("Error issuing commercial paper")
+        }
+        err = stub.PutState(ptyPrefix+cp.CUSIP, cpWriteBytes)
+        if err != nil {
+            fmt.Println("Error issuing paper")
+            return nil, errors.New("Error issuing commercial paper")
+        }
+
+        fmt.Println("Updated commercial paper %+v\n", cprx)
+        return nil, nil
+    } else {
+        return nil, errors.New("Could not find Property Token")
+    }
+
+}
+
 func (t *SimpleChaincode) processRent(stub *shim.ChaincodeStub, args []string) ([]byte, error) {
     if len(args) != 1 {
         fmt.Println("error invalid arguments")
@@ -367,6 +451,9 @@ func (t *SimpleChaincode) processRent(stub *shim.ChaincodeStub, args []string) (
             fmt.Println("Cannot find renter account")
             return nil, errors.New("Failed to find renter account")
         }
+    } else {
+        fmt.Println("Unable to get account information")
+        return nil, errors.New("Failed to get account information")
     }
     var currOwners []Owner
     var currSellers []ForSale
@@ -775,6 +862,21 @@ func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args 
             fmt.Println("All success, returning allptys")
             return allCPsBytes, nil      
         }
+    } else if args[0] == "GetPTY" {
+        fmt.Println("Getting all CPs")
+        pty, err := GetPTY(args[1],stub)
+        if err != nil {
+            fmt.Println("Error from GetPTY")
+            return nil, err
+        } else {
+            PtysBytes, err1 := json.Marshal(&pty)
+            if err1 != nil {
+                fmt.Println("Error marshalling ptys")
+                return nil, err1
+            }   
+            fmt.Println("All success, returning ptys")
+            return PtysBytes, nil      
+        }
     } else {
         fmt.Println("I don't do shit!")
         fmt.Println("Generic Query call")
@@ -917,7 +1019,7 @@ func (t *SimpleChaincode) transferPaper(stub *shim.ChaincodeStub, args []string)
         fmt.Println("The ToCompany has enough money to be transferred for this paper")
     }
 
-    // Checking to see if the shares are revoked
+    // Checking to see if the shares are revofked
     if tr.FromCompany != tr.ToCompany {
         toCompany.CashBalance -= amountToBeTransferred
         fromCompany.CashBalance += amountToBeTransferred
@@ -1031,6 +1133,21 @@ func GetAllPTYs(stub *shim.ChaincodeStub) ([]PTY, error){
     return allCPs, nil
 }
 
+func GetPTY(cusip string, stub *shim.ChaincodeStub) (PTY, error){
+    
+    //
+    cpBytes, err := stub.GetState(ptyPrefix+cusip)
+    
+    var cp PTY
+    err = json.Unmarshal(cpBytes, &cp)
+    if err != nil {
+        fmt.Println("Error retrieving cp " + cusip)
+        return cp, errors.New("Error retrieving cp " + cusip)
+    }
+    
+    return cp, nil
+}
+
 func GetCompany(companyID string, stub *shim.ChaincodeStub) (Account, error){
     var company Account
     companyBytes, err := stub.GetState(accountPrefix+companyID)
@@ -1086,7 +1203,11 @@ func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args
     } else if function == "processRent" {
         // Deletes an entity from its state
         return t.processRent(stub, args)
+    } else if function == "setRent" {
+        // Deletes an entity from its state
+        return t.setRent(stub, args)
     }
+
 
     fmt.Println("Function"+ function +" was not found under invocation")
     return nil, errors.New("Received unknown function invocation")
