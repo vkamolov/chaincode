@@ -441,7 +441,7 @@ func (t *SimpleChaincode) processRent(stub *shim.ChaincodeStub, args []string) (
             // Check he has enough cash
 
             if (renter.CashBalance >= cp.Payment) {
-                renter.CashBalance -= cp.Payment;
+                renter.CashBalance -= t.calcRent(stub, cp.CUSIP);
             } else {
                 fmt.Println("Renter doesn't have enough money!")
                 return nil, errors.New("Renter doens't have enough money!")
@@ -519,11 +519,21 @@ func (t *SimpleChaincode) processRent(stub *shim.ChaincodeStub, args []string) (
                 fmt.Println("Egads, something went wrong with Marshalling")
                 return nil, errors.New("Egads, something went wrong with Marshalling")
             }
+
+            renterBytes, err := json.Marshal(&renter)
+            if err == nil {
+                err = stub.PutState(accountPrefix+renter.ID, renterBytes)
+            } else {
+                fmt.Println("Egads, something went wrong with Marshalling")
+                return nil, errors.New("Egads, something went wrong with Marshalling")
+            }
             
         } else {
             return nil, errors.New("Failed to add rent to owners") 
         }
     }
+
+
     return nil, nil
 
 }
