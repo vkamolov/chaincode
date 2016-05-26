@@ -362,7 +362,7 @@ func (t *SimpleChaincode) setRent(stub *shim.ChaincodeStub, args []string) ([]by
         fmt.Println("Error Getting state of - " + accountPrefix + cp.Issuer)
         return nil, errors.New("Error retrieving account " + cp.Issuer)
     }
-    if accountBytes != nil {
+    if accountBytes == nil {
         fmt.Println("Lol how did you get here")
         return nil, errors.New("Error retrieving account " + cp.Issuer)
     }
