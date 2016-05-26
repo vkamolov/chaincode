@@ -18,6 +18,8 @@ func (t *SimpleChaincode) setRenters(stub *shim.ChaincodeStub, id string, fromAc
 
 	r.RenterID = toAcct
 
+
+
 	propertyBytes, err := stub.GetState(ptyPrefix + id)
 						    if err != nil {
 						        fmt.Println("Error Getting state of - " + ptyPrefix + p.CUSIP)
@@ -31,6 +33,17 @@ func (t *SimpleChaincode) setRenters(stub *shim.ChaincodeStub, id string, fromAc
 						    }
 
 	if fromAcct == "" && toAcct != "" {
+
+		existingBytes, err := stub.GetState(accountPrefix + toAcct)
+							if err != nil {
+						        fmt.Println("Error Getting state of - " + accountPrefix + toAcct)
+						        return nil, errors.New("Error retrieving property " + toAcct)
+						    }
+		var company Account
+		err = json.Unmarshal(existingBytes, &company)
+
+
+
 		fmt.Println("New renter")
 		for i:=0; i<len(p.Renters); i++ {
 			if p.Renters[i].RenterID == toAcct {
@@ -38,6 +51,18 @@ func (t *SimpleChaincode) setRenters(stub *shim.ChaincodeStub, id string, fromAc
 			}
 		}
 		p.Renters = append(p.Renters, r)
+		company.RentingPty = p.CUSIP
+
+		acctBytes, err := json.Marshal(company)
+		if err != nil {
+				                fmt.Println("Error marshalling account struct")
+				                return nil, errors.New("Error marshalling the account")
+				            }
+		err = stub.PutState(accountPrefix + toAcct, acctBytes)
+		if err != nil {
+					            fmt.Println("Error writting keys back")
+					            return nil, errors.New("Error writing the keys back")
+					        }
 
 		bytesToWrite, err := json.Marshal(p)
 				            if err != nil {
@@ -51,11 +76,35 @@ func (t *SimpleChaincode) setRenters(stub *shim.ChaincodeStub, id string, fromAc
 					        }
 	} else if fromAcct != "" && toAcct == "" {
 		fmt.Println("Removing Renter")
+
+
+		existingBytes, err := stub.GetState(accountPrefix + fromAcct)
+							if err != nil {
+						        fmt.Println("Error Getting state of - " + accountPrefix + toAcct)
+						        return nil, errors.New("Error retrieving property " + toAcct)
+						    }
+		var company Account
+		err = json.Unmarshal(existingBytes, &company)
+
 		for i:=0; i<len(p.Renters); i++ {
 			if p.Renters[i].RenterID == fromAcct {
 				p.Renters = append(p.Renters[:i], p.Renters[i+1:]...)
+				company.RentingPty = ""
 			}
 		}
+
+
+
+		acctBytes, err := json.Marshal(company)
+		if err != nil {
+				                fmt.Println("Error marshalling account struct")
+				                return nil, errors.New("Error marshalling the account")
+				            }
+		err = stub.PutState(accountPrefix + toAcct, acctBytes)
+		if err != nil {
+					            fmt.Println("Error writting keys back")
+					            return nil, errors.New("Error writing the keys back")
+					        }
 
 		bytesToWrite, err := json.Marshal(p)
 				            if err != nil {
