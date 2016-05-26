@@ -480,6 +480,7 @@ func (t *SimpleChaincode) processRent(stub *shim.ChaincodeStub, args []string) (
         currOwners = cprx.Owners
         currSellers = cprx.PT4Sale
         // Calculate what each token gets in terms of rent
+
         rentPerToken = t.calcRent(stub, cp.CUSIP)/float64(cprx.Qty)
 
         // Making sure that we calculate what is up for sale as well as part of quantity
@@ -1281,19 +1282,18 @@ var eigthDigit = map[int]string{
     31: "X",
 }
 
-func (t *SimpleChaincode) calcRent(stub *shim.ChaincodeStub, CUSIP string) ([]byte, error) {
+func (t *SimpleChaincode) calcRent(stub *shim.ChaincodeStub, args string) (float64) {
 
-    var CUSIP := args[0]
-    var p PTY
+   CUSIP := args
+   var p PTY
+   var rentAmount float64
 
-    byte, err := stub.GetState(ptyPrefix+p.CUSIP)
-                if err != nil { return "Error getting state of property" }
+   byte, _ := stub.GetState(ptyPrefix+CUSIP)
 
-    err = json.Unmarshal(byte, &p)
+   _ = json.Unmarshal(byte, &p)
 
-    var rentAmount := p.Rent / len.(p.Renters)
+   rentFloat := float64(len(p.Renters))
+   rentAmount = p.Rent / rentFloat
 
-    rentBytes = json.Marshal(rentAmount)
-
-    return rentBytes, nil
+   return rentAmount
 }
