@@ -1,3 +1,4 @@
+//Viktor 03/06/2016: Identity management changes
 package main
 
 import (
